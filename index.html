@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Match Conferencias - Juego de Memoria</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts Inter & Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- FontAwesome para Iconos adicionales -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Canvas Confetti para celebración -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -20,11 +16,7 @@
             color: #f8fafc;
             overflow-x: hidden;
         }
-
-        /* 3D Card Flip Styles */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
+        .perspective-1000 { perspective: 1000px; }
         .transform-style-3d {
             transform-style: preserve-3d;
             transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
@@ -33,23 +25,12 @@
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
         }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-
-        /* Glassmorphism */
+        .rotate-y-180 { transform: rotateY(180deg); }
         .glass-card {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .glass-pill {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* Responsive Icon Sizing */
         .brand-svg {
             width: 70%;
             height: 70%;
@@ -57,20 +38,39 @@
             max-height: 80px;
             object-fit: contain;
         }
-
-        /* Custom Pulse Effect */
         @keyframes subtle-glow {
             0%, 100% { filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.3)); }
             50% { filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.7)); }
         }
-        .animate-glow {
-            animation: subtle-glow 2.5s infinite;
+        .animate-glow { animation: subtle-glow 2.5s infinite; }
+
+        /* Animación de demo */
+        @keyframes demoFlip {
+            0%, 100% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
         }
+        .demo-card { animation: demoFlip 2s ease-in-out infinite; }
+        .demo-card-delay { animation: demoFlip 2s ease-in-out 0.5s infinite; }
+
+        /* Colores de nivel */
+        .level-easy-theme { --level-color: #10b981; --level-color-light: #34d399; }
+        .level-medium-theme { --level-color: #3b82f6; --level-color-light: #60a5fa; }
+        .level-hard-theme { --level-color: #eab308; --level-color-light: #facc15; }
+
+        .level-border { border-color: var(--level-color) !important; }
+        .level-bg { background: color-mix(in srgb, var(--level-color) 15%, transparent) !important; }
+        .level-text { color: var(--level-color-light) !important; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.4s ease-out; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100 selection:bg-cyan-500 selection:text-white">
 
-    <!-- Header / Navbar -->
+    <!-- Header -->
     <header class="w-full py-4 px-6 glass-card border-b border-slate-800/80 sticky top-0 z-50 flex justify-between items-center shadow-2xl">
         <div class="flex items-center space-x-3 cursor-pointer" onclick="goToHome()">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
@@ -81,7 +81,11 @@
             </h1>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="toggleSound()" id="sound-btn" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50 shadow" title="Activar/Silenciar Audio">
+            <div id="player-badge" class="hidden sm:flex items-center space-x-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700/50">
+                <i class="fa-solid fa-user text-cyan-400 text-sm"></i>
+                <span id="player-name-display" class="text-sm font-semibold text-slate-200">Jugador</span>
+            </div>
+            <button onclick="toggleSound()" id="sound-btn" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50 shadow" title="Audio">
                 <i class="fa-solid fa-volume-high text-lg" id="sound-icon"></i>
             </button>
             <button onclick="openStatsModal()" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50 shadow flex items-center space-x-2">
@@ -91,94 +95,81 @@
         </div>
     </header>
 
-    <!-- Main Container -->
     <main class="flex-grow flex items-center justify-center p-4 sm:p-6 w-full max-w-6xl mx-auto">
 
-        <!-- 1. Pantalla de Selección de Dificultad -->
-        <div id="screen-home" class="w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-slate-800 animate-fade-in transition-all">
+        <!-- Pantalla de Bienvenida / Nombre -->
+        <div id="screen-welcome" class="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-slate-800 animate-fade-in">
             <div class="text-center mb-8">
-                <span class="px-4 py-1.5 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 inline-block mb-3 uppercase tracking-wider">
-                    Plataformas de Videoconferencia
-                </span>
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Selecciona la Dificultad</h2>
-                <p class="text-slate-400 text-sm sm:text-base mt-2">Pon a prueba tu memoria relacionando logos, nombres y plataformas.</p>
+                <div class="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                    <i class="fa-solid fa-video text-white text-3xl"></i>
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">¡Bienvenido!</h2>
+                <p class="text-slate-400 text-sm sm:text-base">Antes de comenzar, dinos tu nombre.</p>
             </div>
 
-            <!-- Modos de Dificultad -->
-            <div class="space-y-4 mb-8">
-                <!-- Nivel Fácil -->
-                <button onclick="selectDifficulty('easy')" id="card-diff-easy" class="w-full p-5 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-cyan-500/50 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer">
-                    <div class="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-images text-2xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between">
-                            <h3 class="font-extrabold text-lg text-white group-hover:text-cyan-400 transition-colors">Nivel Fácil: Pares Identicos</h3>
-                            <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">2 por grupo</span>
-                        </div>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Duplica los logos de las plataformas y busca las parejas exactas (Ej: Teams + Teams).</p>
-                    </div>
-                </button>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Tu nombre</label>
+                    <input type="text" id="player-name-input" maxlength="20" placeholder="Ej: María" 
+                        class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-lg font-semibold placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition">
+                    <p id="name-error" class="text-rose-400 text-xs mt-2 hidden">Por favor ingresa un nombre.</p>
+                </div>
 
-                <!-- Nivel Medio -->
-                <button onclick="selectDifficulty('medium')" id="card-diff-medium" class="w-full p-5 rounded-2xl border-2 border-cyan-500 bg-cyan-500/10 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer shadow-lg shadow-cyan-500/10">
-                    <div class="p-3.5 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-font-case text-2xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between">
-                            <h3 class="font-extrabold text-lg text-cyan-300">Nivel Medio: Imagen + Nombre</h3>
-                            <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-bold">2 por grupo</span>
-                        </div>
-                        <p class="text-slate-300 text-xs sm:text-sm mt-1">Relaciona el icono oficial con su correspondiente tarjeta de texto (Ej: Logo Google Meet <-> "Google").</p>
-                    </div>
-                </button>
-
-                <!-- Nivel Difícil -->
-                <button onclick="selectDifficulty('hard')" id="card-diff-hard" class="w-full p-5 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-fuchsia-500/50 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer">
-                    <div class="p-3.5 rounded-2xl bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 group-hover:scale-110 transition-transform">
-                        <i class="fa-solid fa-cubes text-2xl"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between">
-                            <h3 class="font-extrabold text-lg text-white group-hover:text-fuchsia-400 transition-colors">Nivel Difícil: Tríos de Relación</h3>
-                            <span class="text-xs px-2.5 py-1 rounded-full bg-fuchsia-500/20 text-fuchsia-300 font-bold">3 por grupo</span>
-                        </div>
-                        <p class="text-slate-400 text-xs sm:text-sm mt-1">Relaciona 3 elementos simultáneos: Icono + Empresa + Producto (Ej: Icono Teams + "Microsoft" + "Teams").</p>
-                    </div>
+                <button onclick="saveNameAndStart()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 text-white font-black text-lg shadow-xl shadow-indigo-500/25 transition transform active:scale-98 flex items-center justify-center space-x-2">
+                    <span>Comenzar Aventura</span>
+                    <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
-
-            <!-- Botón Iniciar -->
-            <button onclick="startGame()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 text-white font-black text-lg shadow-xl shadow-indigo-500/25 transition transform active:scale-98 flex items-center justify-center space-x-2">
-                <span>Comenzar Desafío</span>
-                <i class="fa-solid fa-play"></i>
-            </button>
         </div>
 
-        <!-- 2. Pantalla de Juego -->
-        <div id="screen-game" class="w-full max-w-5xl hidden flex flex-col items-center animate-fade-in">
-            <!-- Header de Estado del Juego -->
-            <div class="w-full glass-card rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4 shadow-xl">
+        <!-- Pantalla de Pauta / Tutorial por Nivel -->
+        <div id="screen-tutorial" class="w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-slate-800 hidden">
+            <div class="text-center mb-6">
+                <span id="tutorial-level-badge" class="px-4 py-1.5 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 inline-block mb-3 uppercase tracking-wider">
+                    Nivel 1
+                </span>
+                <h2 id="tutorial-title" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Nivel Fácil</h2>
+                <p id="tutorial-desc" class="text-slate-400 text-sm sm:text-base mt-2">Encuentra los pares idénticos.</p>
+            </div>
+
+            <!-- Simulación visual -->
+            <div class="mb-8 p-6 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <p class="text-xs text-slate-400 text-center mb-4 uppercase font-bold tracking-wider">Así se juega</p>
+                <div id="demo-container" class="flex justify-center items-center gap-4 flex-wrap"></div>
+                <p id="demo-caption" class="text-center text-sm text-slate-300 mt-4 font-semibold"></p>
+            </div>
+
+            <div class="flex space-x-3">
+                <button onclick="goToHome()" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition border border-slate-700">
+                    Menú
+                </button>
+                <button id="start-level-btn" onclick="startLevel()" class="flex-2 py-3 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-500/30 flex items-center justify-center space-x-2">
+                    <span>Entendido, ¡Jugar!</span>
+                    <i class="fa-solid fa-play"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Pantalla de Juego -->
+        <div id="screen-game" class="w-full max-w-5xl hidden flex flex-col items-center">
+            <div id="game-header" class="w-full glass-card rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4 shadow-xl level-border">
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
-                        <i class="fa-solid fa-clock text-cyan-400"></i>
+                        <i class="fa-solid fa-clock level-text"></i>
                         <span class="text-xs text-slate-400">Tiempo:</span>
                         <span id="timer-display" class="font-mono font-bold text-white text-lg">00:00</span>
                     </div>
                     <div class="flex items-center space-x-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
-                        <i class="fa-solid fa-shoe-prints text-fuchsia-400"></i>
+                        <i class="fa-solid fa-shoe-prints level-text"></i>
                         <span class="text-xs text-slate-400">Intentos:</span>
                         <span id="moves-display" class="font-mono font-bold text-white text-lg">0</span>
                     </div>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <span id="mode-badge" class="px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold text-xs border border-indigo-500/30">
-                        Modo Medio
-                    </span>
+                    <span id="mode-badge" class="px-3 py-1.5 rounded-xl font-bold text-xs border level-bg level-text level-border">Nivel 1</span>
                     <button onclick="restartGame()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center space-x-2" title="Reiniciar">
-                        <i class="fa-solid fa-rotate-right text-cyan-400"></i>
+                        <i class="fa-solid fa-rotate-right level-text"></i>
                         <span class="hidden sm:inline text-xs font-semibold">Reiniciar</span>
                     </button>
                     <button onclick="goToHome()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center space-x-2" title="Menú">
@@ -188,30 +179,54 @@
                 </div>
             </div>
 
-            <!-- Tablero Dinámico -->
-            <div id="game-board" class="grid gap-3 sm:gap-4 w-full justify-center perspective-1000">
-                <!-- Cartas inyectadas vía JS -->
-            </div>
+            <div id="game-board" class="grid gap-3 sm:gap-4 w-full justify-center perspective-1000"></div>
         </div>
 
     </main>
 
-    <!-- Footer -->
     <footer class="py-4 text-center text-xs text-slate-500 border-t border-slate-800/80">
         VideoconfMatch &bull; Teams, Google Meet, Zoom, Jitsi Meet & Webex
     </footer>
 
-    <!-- Modal de Victoria -->
-    <div id="victory-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-cyan-500/40 transform transition-all scale-95 opacity-0" id="victory-modal-content">
-            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 mb-5 animate-bounce">
-                <i class="fa-solid fa-trophy text-white text-3xl"></i>
+    <!-- Modal de Victoria de Nivel -->
+    <div id="level-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border transform transition-all scale-95 opacity-0" id="level-complete-content">
+            <div id="level-complete-icon" class="w-20 h-20 rounded-3xl mx-auto flex items-center justify-center shadow-lg mb-5 animate-bounce">
+                <i class="fa-solid fa-star text-white text-3xl"></i>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-block mb-2">
-                ¡Completado con Éxito!
+            <span id="level-complete-badge" class="px-3 py-1 rounded-full text-xs font-extrabold inline-block mb-2">¡Nivel Completado!</span>
+            <h3 id="level-complete-title" class="text-3xl font-black text-white mb-2">¡Excelente!</h3>
+            <p id="level-complete-msg" class="text-slate-300 text-sm mb-6">Has superado este nivel.</p>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                <div class="text-center">
+                    <span class="text-xs text-slate-400 block">Tiempo</span>
+                    <span id="lc-time" class="text-xl font-extrabold text-cyan-400">00:00</span>
+                </div>
+                <div class="text-center border-l border-slate-800">
+                    <span class="text-xs text-slate-400 block">Intentos</span>
+                    <span id="lc-moves" class="text-xl font-extrabold text-fuchsia-400">0</span>
+                </div>
+            </div>
+
+            <button id="next-level-btn" onclick="goToNextLevel()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-500/30 flex items-center justify-center space-x-2">
+                <span>Siguiente Nivel</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Final (todos los niveles) -->
+    <div id="victory-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-amber-500/40 transform transition-all scale-95 opacity-0" id="victory-modal-content">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/30 mb-5 animate-bounce">
+                <i class="fa-solid fa-crown text-white text-3xl"></i>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-block mb-2">
+                ¡Campeón Absoluto!
             </span>
-            <h3 class="text-3xl font-black text-white mb-2">¡Excelente Memoria!</h3>
-            <p class="text-slate-300 text-sm mb-6">Has encontrado y relacionado todos los elementos de videoconferencia.</p>
+            <h3 class="text-3xl font-black text-white mb-2">¡Completaste Todo!</h3>
+            <p id="victory-msg" class="text-slate-300 text-sm mb-6">Has superado los 3 niveles.</p>
 
             <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
                 <div class="text-center">
@@ -219,7 +234,7 @@
                     <span id="final-time" class="text-xl font-extrabold text-cyan-400">00:00</span>
                 </div>
                 <div class="text-center border-l border-slate-800">
-                    <span class="text-xs text-slate-400 block">Intentos</span>
+                    <span class="text-xs text-slate-400 block">Intentos Totales</span>
                     <span id="final-moves" class="text-xl font-extrabold text-fuchsia-400">0</span>
                 </div>
             </div>
@@ -228,14 +243,14 @@
                 <button onclick="goToHome()" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition border border-slate-700">
                     Menú
                 </button>
-                <button onclick="restartGame()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-500/30">
-                    Volver a Jugar
+                <button onclick="restartFullGame()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold transition shadow-lg shadow-amber-500/30">
+                    Jugar de Nuevo
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Récords -->
+    <!-- Modal Récords -->
     <div id="stats-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
         <div class="glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center mb-6">
@@ -249,20 +264,14 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-
-            <div class="space-y-3 mb-6" id="stats-container">
-                <!-- Inyectado vía JS -->
-            </div>
-
+            <div class="space-y-3 mb-6" id="stats-container"></div>
             <button onclick="closeStatsModal()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition border border-slate-700">
                 Cerrar
             </button>
         </div>
     </div>
 
-    <!-- Lógica del Juego -->
     <script>
-        // SVGs vectoriales optimizados para cada logo de videoconferencia
         const LOGO_SVGS = {
             teams: `<svg viewBox="0 0 100 100" class="brand-svg"><rect width="100" height="100" rx="20" fill="#464EB8"/><path d="M60 25 a10 10 0 1 1 0 20 a10 10 0 0 1 0 -20 Z" fill="#7B83EB"/><path d="M72 48 c0 -6 -5 -10 -12 -10 c-7 0 -12 4 -12 10 v18 h24 Z" fill="#7B83EB"/><rect x="20" y="32" width="36" height="36" rx="8" fill="#5B63D3"/><text x="38" y="58" font-size="28" font-weight="900" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">T</text></svg>`,
             meet: `<svg viewBox="0 0 100 100" class="brand-svg"><rect width="100" height="100" rx="20" fill="#FFFFFF"/><path d="M25 35 L45 35 L55 45 L55 65 L45 75 L25 75 Z" fill="#00832D"/><path d="M45 35 L65 35 L75 45 L75 65 L65 75 L45 75 Z" fill="#00AC47"/><path d="M65 45 L80 33 V67 L65 55 Z" fill="#EA4335"/><path d="M25 35 L45 35 L45 75 L25 75 Z" fill="#006622"/><path d="M45 35 L65 35 L65 48 L45 48 Z" fill="#FFBA00"/><path d="M45 48 L65 48 L65 75 L45 75 Z" fill="#4285F4"/></svg>`,
@@ -271,83 +280,99 @@
             webex: `<svg viewBox="0 0 100 100" class="brand-svg"><rect width="100" height="100" rx="20" fill="#000000"/><path d="M30 32 C45 15 70 20 70 38 C70 55 45 50 30 68 C15 85 50 90 70 68" fill="none" stroke="#00D775" stroke-width="12" stroke-linecap="round"/><path d="M30 32 C45 15 70 20 70 38 C70 55 45 50 30 68 C15 85 50 90 70 68" fill="none" stroke="#00BCEB" stroke-width="12" stroke-linecap="round" stroke-dasharray="35 60"/></svg>`
         };
 
-        // Definición de Datos según Requerimientos
-        // FÁCIL: Pares idénticos (Icono con Icono)
-        // MEDIO: Imagen con Nombre (Icono con Nombre Empresa/Plataforma)
-        // DÍFICIL: Tríos (Icono + Empresa + Producto/Plataforma)
         const GAME_DATA = {
-            teams: {
-                group: 'teams',
-                icon: LOGO_SVGS.teams,
-                name: 'Microsoft Teams',
+            teams: { group: 'teams', icon: LOGO_SVGS.teams, name: 'Microsoft Teams',
                 hard: [
-                    { type: 'icon', content: LOGO_SVGS.teams, label: 'Logo Teams' },
-                    { type: 'text', content: 'Microsoft', label: 'Empresa' },
-                    { type: 'text', content: 'Teams', label: 'Plataforma' }
-                ]
+                    { type: 'icon', content: LOGO_SVGS.teams },
+                    { type: 'text', content: 'Microsoft' },
+                    { type: 'text', content: 'Teams' }
+                ]},
+            google: { group: 'google', icon: LOGO_SVGS.meet, name: 'Google Meet',
+                hard: [
+                    { type: 'icon', content: LOGO_SVGS.meet },
+                    { type: 'text', content: 'Google' },
+                    { type: 'text', content: 'Meet' }
+                ]},
+            zoom: { group: 'zoom', icon: LOGO_SVGS.zoom, name: 'Zoom Workplace',
+                hard: [
+                    { type: 'icon', content: LOGO_SVGS.zoom },
+                    { type: 'text', content: 'Zoom' },
+                    { type: 'text', content: 'Workplace' }
+                ]},
+            jitsi: { group: 'jitsi', icon: LOGO_SVGS.jitsi, name: 'Jitsi Meet',
+                hard: [
+                    { type: 'icon', content: LOGO_SVGS.jitsi },
+                    { type: 'text', content: 'Jitsi' },
+                    { type: 'text', content: 'Meet' }
+                ]},
+            webex: { group: 'webex', icon: LOGO_SVGS.webex, name: 'Webex by Cisco',
+                hard: [
+                    { type: 'icon', content: LOGO_SVGS.webex },
+                    { type: 'text', content: 'Webex' },
+                    { type: 'text', content: 'Cisco' }
+                ]}
+        };
+
+        // Niveles en orden secuencial
+        const LEVELS = ['easy', 'medium', 'hard'];
+        const LEVEL_INFO = {
+            easy: {
+                number: 1,
+                name: 'Nivel Fácil',
+                subtitle: 'Pares Idénticos',
+                theme: 'level-easy-theme',
+                color: 'emerald',
+                icon: 'fa-images',
+                desc: 'Encuentra los pares idénticos de cada plataforma.',
+                demoCaption: 'Voltea dos cartas iguales para hacer pareja. ¡Fíjate bien en los logos!',
+                demoType: 'identical'
             },
-            google: {
-                group: 'google',
-                icon: LOGO_SVGS.meet,
-                name: 'Google Meet',
-                hard: [
-                    { type: 'icon', content: LOGO_SVGS.meet, label: 'Logo Google Meet' },
-                    { type: 'text', content: 'Google', label: 'Empresa' },
-                    { type: 'text', content: 'Meet', label: 'Plataforma' }
-                ]
+            medium: {
+                number: 2,
+                name: 'Nivel Medio',
+                subtitle: 'Imagen + Nombre',
+                theme: 'level-medium-theme',
+                color: 'blue',
+                icon: 'fa-font-case',
+                desc: 'Relaciona el logo con su nombre correspondiente.',
+                demoCaption: 'Une el logo con el nombre de la plataforma. Ej: Logo Meet ↔ "Google Meet".',
+                demoType: 'name'
             },
-            zoom: {
-                group: 'zoom',
-                icon: LOGO_SVGS.zoom,
-                name: 'Zoom Workplace',
-                hard: [
-                    { type: 'icon', content: LOGO_SVGS.zoom, label: 'Logo Zoom' },
-                    { type: 'text', content: 'Zoom', label: 'Empresa' },
-                    { type: 'text', content: 'Workplace', label: 'Plataforma' }
-                ]
-            },
-            jitsi: {
-                group: 'jitsi',
-                icon: LOGO_SVGS.jitsi,
-                name: 'Jitsi Meet',
-                hard: [
-                    { type: 'icon', content: LOGO_SVGS.jitsi, label: 'Logo Jitsi' },
-                    { type: 'text', content: 'Jitsi', label: 'Empresa' },
-                    { type: 'text', content: 'Meet', label: 'Plataforma' }
-                ]
-            },
-            webex: {
-                group: 'webex',
-                icon: LOGO_SVGS.webex,
-                name: 'Webex by Cisco',
-                hard: [
-                    { type: 'icon', content: LOGO_SVGS.webex, label: 'Logo Webex' },
-                    { type: 'text', content: 'Webex', label: 'Plataforma' },
-                    { type: 'text', content: 'Cisco', label: 'Empresa' }
-                ]
+            hard: {
+                number: 3,
+                name: 'Nivel Difícil',
+                subtitle: 'Tríos de Relación',
+                theme: 'level-hard-theme',
+                color: 'yellow',
+                icon: 'fa-cubes',
+                desc: 'Relaciona 3 elementos: Logo + Empresa + Producto.',
+                demoCaption: 'Encuentra el trío completo. Ej: Logo Teams + "Microsoft" + "Teams".',
+                demoType: 'triple'
             }
         };
 
-        // Estado del Juego
-        let currentDifficulty = 'medium'; // 'easy', 'medium', 'hard'
+        // Estado
+        let playerName = '';
+        let currentLevelIndex = 0; // 0, 1, 2
+        let currentDifficulty = 'easy';
         let soundEnabled = true;
         let cards = [];
         let flippedCards = [];
         let matchedGroupsCount = 0;
         let totalGroups = 0;
-        let requiredPerGroup = 2; // 2 para fácil/medio, 3 para difícil
+        let requiredPerGroup = 2;
         let moves = 0;
+        let totalMovesAllLevels = 0;
+        let totalTimeAllLevels = 0;
         let timerInterval = null;
         let secondsElapsed = 0;
         let isLocked = false;
         let gameStarted = false;
 
-        // Web Audio API Synth para Efectos
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (!soundEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
@@ -360,8 +385,7 @@
                 osc.frequency.exponentialRampToValueAtTime(640, now + 0.08);
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
-                osc.start(now);
-                osc.stop(now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
             } else if (type === 'match') {
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(523.25, now);
@@ -369,71 +393,138 @@
                 osc.frequency.setValueAtTime(783.99, now + 0.2);
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
-                osc.start(now);
-                osc.stop(now + 0.35);
+                osc.start(now); osc.stop(now + 0.35);
             } else if (type === 'mismatch') {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(220, now);
                 osc.frequency.linearRampToValueAtTime(140, now + 0.18);
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
-                osc.start(now);
-                osc.stop(now + 0.18);
+                osc.start(now); osc.stop(now + 0.18);
             } else if (type === 'victory') {
                 [330, 392, 493, 659].forEach((freq, idx) => {
-                    let noteOsc = audioCtx.createOscillator();
-                    let noteGain = audioCtx.createGain();
-                    noteOsc.connect(noteGain);
-                    noteGain.connect(audioCtx.destination);
-                    noteOsc.frequency.value = freq;
-                    noteGain.gain.setValueAtTime(0.15, now + idx * 0.12);
-                    noteGain.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.3);
-                    noteOsc.start(now + idx * 0.12);
-                    noteOsc.stop(now + idx * 0.12 + 0.3);
+                    let o = audioCtx.createOscillator();
+                    let g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.value = freq;
+                    g.gain.setValueAtTime(0.15, now + idx * 0.12);
+                    g.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.3);
+                    o.start(now + idx * 0.12);
+                    o.stop(now + idx * 0.12 + 0.3);
                 });
             }
         }
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
-            const icon = document.getElementById('sound-icon');
-            icon.className = soundEnabled ? "fa-solid fa-volume-high text-lg" : "fa-solid fa-volume-xmark text-lg text-slate-500";
+            document.getElementById('sound-icon').className = soundEnabled 
+                ? "fa-solid fa-volume-high text-lg" 
+                : "fa-solid fa-volume-xmark text-lg text-slate-500";
         }
 
-        // Seleccionar Dificultad
-        function selectDifficulty(diff) {
-            currentDifficulty = diff;
-            
-            // Reset styles
-            ['easy', 'medium', 'hard'].forEach(d => {
-                const card = document.getElementById(`card-diff-${d}`);
-                card.className = "w-full p-5 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer";
-            });
+        // ============ PANTALLA BIENVENIDA ============
+        function saveNameAndStart() {
+            const input = document.getElementById('player-name-input');
+            const name = input.value.trim();
+            if (!name) {
+                document.getElementById('name-error').classList.remove('hidden');
+                input.focus();
+                return;
+            }
+            playerName = name;
+            document.getElementById('player-name-display').innerText = playerName;
+            document.getElementById('player-badge').classList.remove('hidden');
+            document.getElementById('name-error').classList.add('hidden');
 
-            const active = document.getElementById(`card-diff-${diff}`);
+            // Reset progreso
+            currentLevelIndex = 0;
+            totalMovesAllLevels = 0;
+            totalTimeAllLevels = 0;
+
+            // Guardar récord con nombre
+            document.getElementById('screen-welcome').classList.add('hidden');
+            showTutorial('easy');
+        }
+
+        // ============ TUTORIAL ============
+        function showTutorial(diff) {
+            currentDifficulty = diff;
+            const info = LEVEL_INFO[diff];
+            
+            document.getElementById('screen-home') && document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('screen-tutorial').classList.remove('hidden');
+
+            const tutScreen = document.getElementById('screen-tutorial');
+            // Aplicar tema
+            tutScreen.className = `w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border ${info.theme} animate-fade-in-up`;
+
+            document.getElementById('tutorial-level-badge').innerText = `Nivel ${info.number} de 3`;
+            document.getElementById('tutorial-level-badge').className = `px-4 py-1.5 rounded-full text-xs font-bold level-bg level-text level-border inline-block mb-3 uppercase tracking-wider`;
+            document.getElementById('tutorial-title').innerText = `${info.name}: ${info.subtitle}`;
+            document.getElementById('tutorial-desc').innerText = info.desc;
+            document.getElementById('demo-caption').innerText = info.demoCaption;
+
+            const startBtn = document.getElementById('start-level-btn');
+            startBtn.className = `flex-2 py-3 px-6 rounded-xl text-white font-bold transition shadow-lg flex items-center justify-center space-x-2 ${
+                diff === 'easy' ? 'bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 shadow-emerald-500/30' :
+                diff === 'medium' ? 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 shadow-blue-500/30' :
+                'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 shadow-yellow-500/30'
+            }`;
+
+            renderDemo(diff);
+        }
+
+        function renderDemo(diff) {
+            const container = document.getElementById('demo-container');
+            container.innerHTML = '';
+
+            const makeCard = (html, delay = 0) => {
+                const div = document.createElement('div');
+                div.className = `w-16 h-20 sm:w-20 sm:h-24 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-slate-700 flex items-center justify-center p-1 ${delay ? 'demo-card-delay' : 'demo-card'}`;
+                div.innerHTML = html;
+                return div;
+            };
+
+            const iconHtml = (svg) => `<div class="w-full h-full flex items-center justify-center">${svg}</div>`;
+            const textHtml = (txt) => `<span class="text-xs sm:text-sm font-black text-center px-1">${txt}</span>`;
+
             if (diff === 'easy') {
-                active.className = "w-full p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/10 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer shadow-lg shadow-emerald-500/10";
+                container.appendChild(makeCard(iconHtml(LOGO_SVGS.teams), false));
+                container.appendChild(makeCard(iconHtml(LOGO_SVGS.teams), true));
+                const arrow = document.createElement('div');
+                arrow.innerHTML = '<i class="fa-solid fa-arrows-left-right text-emerald-400 text-xl"></i>';
+                container.appendChild(arrow);
+                const check = document.createElement('div');
+                check.innerHTML = '<i class="fa-solid fa-check-circle text-emerald-400 text-3xl"></i>';
+                container.appendChild(check);
             } else if (diff === 'medium') {
-                active.className = "w-full p-5 rounded-2xl border-2 border-cyan-500 bg-cyan-500/10 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer shadow-lg shadow-cyan-500/10";
+                container.appendChild(makeCard(iconHtml(LOGO_SVGS.meet), false));
+                const arrow = document.createElement('div');
+                arrow.innerHTML = '<i class="fa-solid fa-link text-blue-400 text-xl"></i>';
+                container.appendChild(arrow);
+                container.appendChild(makeCard(textHtml('Google Meet'), true));
             } else {
-                active.className = "w-full p-5 rounded-2xl border-2 border-fuchsia-500 bg-fuchsia-500/10 text-left transition-all duration-300 flex items-start space-x-4 group cursor-pointer shadow-lg shadow-fuchsia-500/10";
+                container.appendChild(makeCard(iconHtml(LOGO_SVGS.teams), false));
+                const plus1 = document.createElement('div');
+                plus1.innerHTML = '<i class="fa-solid fa-plus text-yellow-400 text-lg"></i>';
+                container.appendChild(plus1);
+                container.appendChild(makeCard(textHtml('Microsoft'), true));
+                const plus2 = document.createElement('div');
+                plus2.innerHTML = '<i class="fa-solid fa-plus text-yellow-400 text-lg"></i>';
+                container.appendChild(plus2);
+                container.appendChild(makeCard(textHtml('Teams'), false));
             }
         }
 
-        function goToHome() {
-            clearInterval(timerInterval);
-            document.getElementById('screen-game').classList.add('hidden');
-            document.getElementById('victory-modal').classList.add('hidden');
-            document.getElementById('screen-home').classList.remove('hidden');
-        }
-
-        function startGame() {
-            document.getElementById('screen-home').classList.add('hidden');
+        // ============ JUEGO ============
+        function startLevel() {
+            document.getElementById('screen-tutorial').classList.add('hidden');
             document.getElementById('screen-game').classList.remove('hidden');
             initGame();
         }
 
-        // Construir Baraja Según Nivel
         function initGame() {
             clearInterval(timerInterval);
             secondsElapsed = 0;
@@ -446,37 +537,31 @@
             document.getElementById('moves-display').innerText = '0';
             document.getElementById('timer-display').innerText = '00:00';
 
+            const info = LEVEL_INFO[currentDifficulty];
+            const header = document.getElementById('game-header');
+            header.className = `w-full glass-card rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4 shadow-xl ${info.theme} level-border`;
+
             const badge = document.getElementById('mode-badge');
-            if (currentDifficulty === 'easy') {
-                badge.innerText = "Fácil (Duplicar Logos)";
-                badge.className = "px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/30";
-                requiredPerGroup = 2;
-            } else if (currentDifficulty === 'medium') {
-                badge.innerText = "Medio (Logo + Nombre)";
-                badge.className = "px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/30";
-                requiredPerGroup = 2;
-            } else {
-                badge.innerText = "Difícil (Tríos de Relación)";
-                badge.className = "px-3 py-1.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 font-bold text-xs border border-fuchsia-500/30";
-                requiredPerGroup = 3;
-            }
+            badge.innerText = `Nivel ${info.number}: ${info.subtitle}`;
+            badge.className = `px-3 py-1.5 rounded-xl font-bold text-xs border level-bg level-text level-border`;
+
+            if (currentDifficulty === 'easy') requiredPerGroup = 2;
+            else if (currentDifficulty === 'medium') requiredPerGroup = 2;
+            else requiredPerGroup = 3;
 
             cards = [];
             const keys = Object.keys(GAME_DATA);
-            totalGroups = keys.length; // 5 Plataformas
+            totalGroups = keys.length;
 
             keys.forEach(key => {
                 const data = GAME_DATA[key];
                 if (currentDifficulty === 'easy') {
-                    // 2 tarjetas con el mismo logo
                     cards.push({ group: key, type: 'icon', content: data.icon });
                     cards.push({ group: key, type: 'icon', content: data.icon });
                 } else if (currentDifficulty === 'medium') {
-                    // 1 logo + 1 texto con el nombre
                     cards.push({ group: key, type: 'icon', content: data.icon });
                     cards.push({ group: key, type: 'text', content: data.name });
-                } else if (currentDifficulty === 'hard') {
-                    // 3 tarjetas (Trío especificado en los requerimientos)
+                } else {
                     data.hard.forEach(item => {
                         cards.push({ group: key, type: item.type, content: item.content });
                     });
@@ -484,17 +569,12 @@
             });
 
             shuffleArray(cards);
-
-            // Renderizar Tablero
             const board = document.getElementById('game-board');
             board.innerHTML = '';
 
-            // Definir Grid
             if (currentDifficulty === 'hard') {
-                // 15 cartas -> Grid de 5 columnas x 3 filas
                 board.className = "grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-4xl mx-auto";
             } else {
-                // 10 cartas -> Grid de 5 columnas x 2 filas o 4x3 adaptativo
                 board.className = "grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 w-full max-w-3xl mx-auto";
             }
 
@@ -511,17 +591,14 @@
 
                 cardEl.innerHTML = `
                     <div class="card-inner relative w-full h-full transform-style-3d rounded-2xl shadow-xl transition-all duration-300" data-index="${index}">
-                        <!-- Cara Frontal (Oculta) -->
                         <div class="card-front absolute inset-0 w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 rounded-2xl flex flex-col items-center justify-center shadow-inner hover:border-cyan-500/50 transition">
                             <i class="fa-solid fa-layer-group text-slate-600 text-xl sm:text-2xl"></i>
                         </div>
-                        <!-- Cara Trasera (Revelada) -->
                         <div class="card-back absolute inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border-2 border-cyan-500/50 rounded-2xl flex flex-col items-center justify-center p-2 rotate-y-180 backface-hidden shadow-cyan-500/20">
                             ${backContentHtml}
                         </div>
                     </div>
                 `;
-
                 cardEl.addEventListener('click', () => flipCard(index, cardEl));
                 board.appendChild(cardEl);
             });
@@ -532,22 +609,14 @@
             const cardInner = cardEl.querySelector('.card-inner');
             const clickedCard = cards[index];
 
-            if (!gameStarted) {
-                gameStarted = true;
-                startTimer();
-            }
+            if (!gameStarted) { gameStarted = true; startTimer(); }
 
-            // Evitar voltear la misma tarjeta o si ya está resuelta
-            if (clickedCard.matched || cardInner.classList.contains('rotate-y-180') || flippedCards.some(c => c.index === index)) {
-                return;
-            }
+            if (clickedCard.matched || cardInner.classList.contains('rotate-y-180') || flippedCards.some(c => c.index === index)) return;
 
-            // Voltear
             cardInner.classList.add('rotate-y-180');
             playSound('flip');
             flippedCards.push({ index, group: clickedCard.group, element: cardInner });
 
-            // Verificar si alcanzamos el número de cartas requeridas para el intento (2 o 3)
             if (flippedCards.length === requiredPerGroup) {
                 moves++;
                 document.getElementById('moves-display').innerText = moves;
@@ -558,42 +627,27 @@
         function checkMatch() {
             isLocked = true;
             const firstGroup = flippedCards[0].group;
-            // Comprobar si TODAS las cartas seleccionadas pertenecen al mismo grupo
             const isAllMatch = flippedCards.every(card => card.group === firstGroup);
 
             if (isAllMatch) {
-                // ¡Acierto!
                 playSound('match');
                 flippedCards.forEach(c => {
                     cards[c.index].matched = true;
                     c.element.classList.add('ring-4', 'ring-emerald-400');
                 });
-
                 matchedGroupsCount++;
-                
-                confetti({
-                    particleCount: 20,
-                    spread: 50,
-                    origin: { y: 0.7 }
-                });
-
+                confetti({ particleCount: 20, spread: 50, origin: { y: 0.7 } });
                 resetTurn();
 
                 if (matchedGroupsCount === totalGroups) {
                     clearInterval(timerInterval);
-                    setTimeout(handleVictory, 500);
+                    setTimeout(handleLevelComplete, 600);
                 }
             } else {
-                // Fallo
                 playSound('mismatch');
-                flippedCards.forEach(c => {
-                    c.element.classList.add('ring-2', 'ring-rose-500');
-                });
-
+                flippedCards.forEach(c => c.element.classList.add('ring-2', 'ring-rose-500'));
                 setTimeout(() => {
-                    flippedCards.forEach(c => {
-                        c.element.classList.remove('rotate-y-180', 'ring-2', 'ring-rose-500');
-                    });
+                    flippedCards.forEach(c => c.element.classList.remove('rotate-y-180', 'ring-2', 'ring-rose-500'));
                     resetTurn();
                 }, 1000);
             }
@@ -613,73 +667,173 @@
             }, 1000);
         }
 
-        function handleVictory() {
+        // ============ VICTORIA DE NIVEL ============
+        function handleLevelComplete() {
             playSound('victory');
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
 
-            confetti({
-                particleCount: 150,
-                spread: 90,
-                origin: { y: 0.6 }
-            });
+            totalMovesAllLevels += moves;
+            totalTimeAllLevels += secondsElapsed;
 
             const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
             const secs = (secondsElapsed % 60).toString().padStart(2, '0');
-            const timeStr = `${mins}:${secs}`;
+            document.getElementById('lc-time').innerText = `${mins}:${secs}`;
+            document.getElementById('lc-moves').innerText = moves;
 
-            document.getElementById('final-time').innerText = timeStr;
-            document.getElementById('final-moves').innerText = moves;
+            const info = LEVEL_INFO[currentDifficulty];
+            const isLastLevel = currentLevelIndex === LEVELS.length - 1;
 
-            saveHighScore(currentDifficulty, { time: secondsElapsed, timeStr, moves });
+            const modal = document.getElementById('level-complete-modal');
+            const content = document.getElementById('level-complete-content');
+            const icon = document.getElementById('level-complete-icon');
+            const badge = document.getElementById('level-complete-badge');
+            const title = document.getElementById('level-complete-title');
+            const msg = document.getElementById('level-complete-msg');
+            const nextBtn = document.getElementById('next-level-btn');
 
-            const modal = document.getElementById('victory-modal');
-            const modalContent = document.getElementById('victory-modal-content');
+            // Estilo según nivel
+            if (currentDifficulty === 'easy') {
+                icon.className = 'w-20 h-20 rounded-3xl mx-auto flex items-center justify-center shadow-lg mb-5 animate-bounce bg-gradient-to-tr from-emerald-400 to-emerald-600 shadow-emerald-500/30';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-extrabold inline-block mb-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                content.className = 'glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-emerald-500/40 transform transition-all scale-95 opacity-0';
+            } else if (currentDifficulty === 'medium') {
+                icon.className = 'w-20 h-20 rounded-3xl mx-auto flex items-center justify-center shadow-lg mb-5 animate-bounce bg-gradient-to-tr from-blue-400 to-blue-600 shadow-blue-500/30';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-extrabold inline-block mb-2 bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                content.className = 'glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-blue-500/40 transform transition-all scale-95 opacity-0';
+            } else {
+                icon.className = 'w-20 h-20 rounded-3xl mx-auto flex items-center justify-center shadow-lg mb-5 animate-bounce bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-yellow-500/30';
+                badge.className = 'px-3 py-1 rounded-full text-xs font-extrabold inline-block mb-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+                content.className = 'glass-card w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-yellow-500/40 transform transition-all scale-95 opacity-0';
+            }
+
+            badge.innerText = `¡Nivel ${info.number} Completado!`;
+            title.innerText = isLastLevel ? '¡Nivel Final Superado!' : `¡${playerName}, nivel superado!`;
+            
+            if (isLastLevel) {
+                msg.innerText = '¡Has completado los 3 niveles! Eres un campeón de la memoria.';
+                nextBtn.innerHTML = '<span>Ver Resultado Final</span><i class="fa-solid fa-crown"></i>';
+                nextBtn.className = 'w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold transition shadow-lg shadow-amber-500/30 flex items-center justify-center space-x-2';
+                nextBtn.onclick = showFinalVictory;
+            } else {
+                msg.innerText = `Has superado el ${info.name}. Prepárate para el siguiente desafío.`;
+                nextBtn.innerHTML = '<span>Siguiente Nivel</span><i class="fa-solid fa-arrow-right"></i>';
+                nextBtn.className = 'w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold transition shadow-lg shadow-indigo-500/30 flex items-center justify-center space-x-2';
+                nextBtn.onclick = goToNextLevel;
+            }
+
             modal.classList.remove('hidden');
             setTimeout(() => {
-                modalContent.classList.remove('scale-95', 'opacity-0');
-                modalContent.classList.add('scale-100', 'opacity-100');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
             }, 50);
         }
 
-        function restartGame() {
-            const modal = document.getElementById('victory-modal');
+        function goToNextLevel() {
+            const modal = document.getElementById('level-complete-modal');
             modal.classList.add('hidden');
-            document.getElementById('victory-modal-content').classList.remove('scale-100', 'opacity-100');
-            document.getElementById('victory-modal-content').classList.add('scale-95', 'opacity-0');
-            initGame();
-        }
+            const content = document.getElementById('level-complete-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
 
-        function saveHighScore(diff, score) {
-            let scores = JSON.parse(localStorage.getItem('vconf_match_scores')) || { easy: null, medium: null, hard: null };
-            if (!scores[diff] || score.time < scores[diff].time || (score.time === scores[diff].time && score.moves < scores[diff].moves)) {
-                scores[diff] = score;
-                localStorage.setItem('vconf_match_scores', JSON.stringify(scores));
+            currentLevelIndex++;
+            if (currentLevelIndex < LEVELS.length) {
+                showTutorial(LEVELS[currentLevelIndex]);
             }
         }
 
+        function showFinalVictory() {
+            document.getElementById('level-complete-modal').classList.add('hidden');
+            
+            const totalMins = Math.floor(totalTimeAllLevels / 60).toString().padStart(2, '0');
+            const totalSecs = (totalTimeAllLevels % 60).toString().padStart(2, '0');
+            document.getElementById('final-time').innerText = `${totalMins}:${totalSecs}`;
+            document.getElementById('final-moves').innerText = totalMovesAllLevels;
+            document.getElementById('victory-msg').innerText = `¡Felicidades ${playerName}! Has completado los 3 niveles.`;
+
+            saveHighScore({ name: playerName, time: totalTimeAllLevels, timeStr: `${totalMins}:${totalSecs}`, moves: totalMovesAllLevels });
+
+            const modal = document.getElementById('victory-modal');
+            const content = document.getElementById('victory-modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        // ============ REINICIO ============
+        function restartGame() {
+            const modal = document.getElementById('level-complete-modal');
+            modal.classList.add('hidden');
+            const content = document.getElementById('level-complete-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            initGame();
+        }
+
+        function restartFullGame() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            const content = document.getElementById('victory-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            currentLevelIndex = 0;
+            totalMovesAllLevels = 0;
+            totalTimeAllLevels = 0;
+            document.getElementById('screen-game').classList.add('hidden');
+            showTutorial('easy');
+        }
+
+        function goToHome() {
+            clearInterval(timerInterval);
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-tutorial').classList.add('hidden');
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('level-complete-modal').classList.add('hidden');
+            document.getElementById('screen-welcome').classList.remove('hidden');
+            
+            // Reset input
+            document.getElementById('player-name-input').value = '';
+            document.getElementById('player-badge').classList.add('hidden');
+            currentLevelIndex = 0;
+            totalMovesAllLevels = 0;
+            totalTimeAllLevels = 0;
+        }
+
+        // ============ RÉCORDS ============
+        function saveHighScore(score) {
+            let scores = JSON.parse(localStorage.getItem('vconf_match_scores_v2')) || [];
+            scores.push(score);
+            scores.sort((a, b) => a.time - b.time);
+            scores = scores.slice(0, 5); // Top 5
+            localStorage.setItem('vconf_match_scores_v2', JSON.stringify(scores));
+        }
+
         function openStatsModal() {
-            const scores = JSON.parse(localStorage.getItem('vconf_match_scores')) || { easy: null, medium: null, hard: null };
+            const scores = JSON.parse(localStorage.getItem('vconf_match_scores_v2')) || [];
             const container = document.getElementById('stats-container');
             container.innerHTML = '';
 
-            const diffNames = { easy: 'Fácil (Pares)', medium: 'Medio (Imagen + Texto)', hard: 'Difícil (Tríos)' };
-
-            ['easy', 'medium', 'hard'].forEach(diff => {
-                const data = scores[diff];
-                const item = document.createElement('div');
-                item.className = "flex justify-between items-center p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800";
-                item.innerHTML = `
-                    <div>
-                        <span class="text-sm font-bold text-slate-200 block">${diffNames[diff]}</span>
-                        <span class="text-xs text-slate-400">Récord</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-sm font-extrabold text-cyan-400 block">${data ? data.timeStr : '--:--'}</span>
-                        <span class="text-xs text-fuchsia-400">${data ? data.moves + ' intentos' : 'Sin registro'}</span>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-
+            if (scores.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 text-center text-sm py-4">Aún no hay récords. ¡Juega y sé el primero!</p>';
+            } else {
+                scores.forEach((score, idx) => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800";
+                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                    item.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <span class="text-lg">${medal}</span>
+                            <div>
+                                <span class="text-sm font-bold text-slate-200 block">${score.name}</span>
+                                <span class="text-xs text-slate-400">${score.moves} intentos</span>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-cyan-400">${score.timeStr}</span>
+                    `;
+                    container.appendChild(item);
+                });
+            }
             document.getElementById('stats-modal').classList.remove('hidden');
         }
 
@@ -693,6 +847,11 @@
                 [array[i], array[j]] = [array[j], array[i]];
             }
         }
+
+        // Enter en el input
+        document.getElementById('player-name-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveNameAndStart();
+        });
     </script>
 </body>
 </html>
